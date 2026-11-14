@@ -35,6 +35,8 @@ window.ECHOES_CONFIG = {
       facts:     r.facts || [],     // array of real, citable facts (the chat only draws from these)
       rover:     r.rover,           // "curiosity" | "opportunity" | "spirit": shows live rover photos
       nasaQuery: r.nasaQuery,       // search words for NASA's image library (defaults to the name)
+      nasaQueries: r.nasaQueries,   // fallback searches for the mission photo, tried in order
+      scenic:    r.scenic,          // searches for the aesthetic photo (Earthrise, sunsets, crescents), tried in order
       source:    r.source,          // string or {label,url}: credited under every AI answer
       image:     r.image,           // optional image URL or path
       badge:     r.badge

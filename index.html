@@ -270,16 +270,21 @@ const GOODT=/panorama|sunset|sunrise|earthrise|crescent|horizon|selfie|view|rise
 const score=(p,q)=>(GOODT.test(p.t)?2:0)-(BADT.test(p.t)?5:0)+q.toLowerCase().split(/\W+/).filter(w=>w.length>3&&p.t.toLowerCase().includes(w)).length;
 async function best(qs){for(const q of qs||[]){const it=await nasaItems({nasaQuery:q});if(it.length)return it.map(p=>({p,s:score(p,q)})).sort((a,b)=>b.s-a.s)[0].p}return null}
 let PINS={};
+// load order for a picture: medium size -> full file -> a live NASA search result (so a bad pin never leaves a hole)
+function chain(i,st,role,m,size){let it=st.it;const urls=[size==="hero"?(su(it.h||med(it.u))):(su(it.m||sml(it.u))),su(it.u)].filter((u,k,a)=>u&&a.indexOf(u)===k);let k=0,live=false;
+ i.onerror=async()=>{if(++k<urls.length){i.src=urls[k];return}if(live||it.live){i.remove();return}live=true;
+  const x=await best(role==="main"?(m.nasaQueries||[m.nasaQuery||m.name]):m.scenic);if(x){x.live=true;it=x;st.it=x;if(role==="scenic")m.sc=x;else m.mi=x;i.src=su(size==="hero"?med(x.u):sml(x.u))||su(x.u)}else i.remove()};
+ i.src=urls[0]}
 function paintHero(m){const h=$("#dhero");if(!h||cur!==m)return;const it=m.sc||m.mi||(m.image?{u:m.image,t:m.name}:null);if(!it)return;
- const i=new Image();i.className="f";i.alt=it.t||m.name;i.decoding="async";i.onload=()=>{h.querySelectorAll("img,.cap").forEach(x=>x.remove());h.append(i);requestAnimationFrame(()=>i.classList.add("ok"));
-  if(it.id||it.c){const c=document.createElement("div");c.className="cap";c.append((it.t||"")+" · "+(it.c||"NASA")+" · ");if(it.l&&su(it.l)){const a=document.createElement("a");a.href=su(it.l);a.target="_blank";a.rel="noopener";a.textContent="NASA ID "+it.id;c.append(a)}h.append(c)}};
- i.onerror=()=>{if(i.src!==su(it.u)&&su(it.u))i.src=su(it.u)};i.src=su(med(it.u))||su(it.u)}
+ const st={it},i=new Image();i.className="f";i.alt=it.t||m.name;i.decoding="async";i.onload=()=>{const it=st.it;i.alt=it.t||m.name;h.querySelectorAll("img,.cap").forEach(x=>x.remove());h.append(i);requestAnimationFrame(()=>i.classList.add("ok"));
+  if(it.id||it.c){const c=document.createElement("div");c.className="cap";c.append((it.t||"")+" · "+(it.c||"NASA")+" · ");if(it.l&&su(it.l)){const a=document.createElement("a");a.href=su(it.l);a.target="_blank";a.rel="noopener";a.textContent="NASA "+(it.id||"source");c.append(a)}h.append(c)}};
+ chain(i,st,m.sc?"scenic":"main",m,"hero")}
 async function fillImages(){if(C.NASA_AUTO_IMAGES===false)return;
  try{PINS=await (await fetch("data/image_pins.json")).json()}catch(e){PINS={}}
  const one=async m=>{const pin=PINS[m.id]||{},main=pin.main||await best(m.nasaQueries||[m.nasaQuery||m.name]),sc=pin.scenic||(m.scenic&&m.scenic.length?await best(m.scenic):null);
   m.mi=main;m.sc=sc;if(!m.image&&main)m.image=med(main.u);if(cur===m)paintHero(m);
   const ph=document.querySelector(`.tile[data-id="${CSS.escape(m.id)}"] .ph`),cd=document.querySelector(`.card[data-id="${CSS.escape(m.id)}"]`);
-  const mk=(it,cls)=>{const i=new Image();i.className="f "+cls;i.alt=it.t||"";i.decoding="async";i.onload=()=>i.classList.add("ok");i.onerror=()=>{if(i.src!==su(it.u))i.src=su(it.u);else i.remove()};i.src=su(sml(it.u))||su(it.u);return i};
+  const mk=(it,cls)=>{const i=new Image();i.className="f "+cls;i.alt=it.t||"";i.decoding="async";i.onload=()=>i.classList.add("ok");chain(i,{it},cls==="m"?"main":"scenic",m,"tile");return i};
   if(ph&&(main||sc)){ph.innerHTML="";if(main&&sc)ph.append(mk(main,"m"),mk(sc,"s"));else ph.append(mk(sc||main,"s"))}
   if(cd&&(sc||main))cd.prepend(mk(sc||main,"s"))};
  let k=0;await Promise.all(Array.from({length:6},async()=>{while(k<M.length)await one(M[k++])}))}
