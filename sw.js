@@ -1,4 +1,4 @@
-// Network-first service worker: always fresh when online, works offline after the first visit.
+ // Network-first service worker: always fresh when online, works offline after the first visit.
 const V="echoes-v4",SHELL=["./","index.html","planet.html","config.js","data/missions.json","data/sites.json"];
 self.addEventListener("install",e=>{self.skipWaiting();e.waitUntil(caches.open(V).then(c=>Promise.all(SHELL.map(u=>c.add(u).catch(()=>{})))))});
 self.addEventListener("activate",e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==V).map(x=>caches.delete(x)))).then(()=>self.clients.claim())));
